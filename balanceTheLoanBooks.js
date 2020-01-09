@@ -5,7 +5,7 @@ class LoanBooks{
         this.covenants=[]
         this.banks=[]
         this.assignments=[]
-        this.yields=[]
+        this.yields={}
     }
     setDummyData(){ //sets dummy data to all arrays for simple case testing
         this.loans = [
@@ -52,8 +52,8 @@ class LoanBooks{
 
             })
             const chosenFacility = facilitiesFitCovenants.reduce((minRateFacility,facility)=> facility.interest_rate < minRateFacility.interest_rate ? facility : minRateFacility,facilitiesFitCovenants[0])
-            
-            //reduce the chosen facility amount
+
+            //decrease the chosen facility amount
             for(let i=0;i<this.facilities.length;i++){
                 if(this.facilities[i].id == chosenFacility) this.facilities[i].amount-=loan.amount
             }
@@ -62,7 +62,7 @@ class LoanBooks{
             console.log("loan: ", loan)
             console.log("cosen facility: ", chosenFacility)
             if(loan && chosenFacility)
-                return {loan_id: loan.id, facility_id: chosenFacility.id}
+                return {loan: loan, facility: chosenFacility}
         })
 
     }
@@ -88,14 +88,29 @@ class LoanBooks{
                 return covenant.bank_id === facility.bank_id
             }
         })
-        debugger
         const covenantsForLoan = covenantsForFacility.filter((covenant)=>{
             return ((covenant.max_default_likelihood && covenant.max_default_likelihood < loan.default_likelihood) || (covenant.banned_state == loan.state) )
         })
         return covenantsForLoan.length ? false : true
+    }
+    facilityYieldCalculator(){
+        this.assignments.forEach((assignment)=>{
+            // const defaultLikelihood = 
+            // const loanInterestRate=
+            // const loanAmount=
+            // const facilityInterestRate=
+            debugger
+            
+            const expectedYield = Math.round((1 - assignment.loan.default_likelihood) * (assignment.loan.interest_rate * assignment.loan.amount) - (assignment.loan.default_likelihood * assignment.loan.amount) - (assignment.facility.interest_rate * assignment.loan.amount))
+            if(!this.yields[assignment.facility.id]) this.yields[assignment.facility.id] = expectedYield
+            else this.yields[assignment.facility.id] += expectedYield
+        })
+        console.log(this.yields)
     }
 }
 
 let a = new LoanBooks()
 a.setDummyData()
 a.assignLoansToFacilities()
+console.log(a.assignments)
+a.facilityYieldCalculator()
