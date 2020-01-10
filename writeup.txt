@@ -1,0 +1,73 @@
+1. How long did you spend working on the problem? What did you find to be the most difficult part?
+Answer:
+I worked on the project about 5 hours
+The challanging parts wehere: having it work correctly on the large data set and integrating the reading and writing to and from CSV facilities
+
+2. How would you modify your data model or code to account for an eventual introduction of new, as-of-yet unknown types of covenants, beyond just maximum default likelihood and state restrictions?
+Answer:
+I would design a "covenant" class with all attributes needs to be able to work with new/unknown covenants.
+the covenant class would have properties such as:
+name: any desciptive name. that will replace the current hard coded: "banned_date" and" "max_default_likelihood"
+checkCovenant(covenantFacilityInfo, loan): that propery will recieve as arguments the entire covnant row from the csv file and the loan that we want to check
+and perform the relevant check if the laon can or cannot be funded by the inputfacility.
+The idea here is that the class "LoanBooks" doesn't need to know how to check each covenant, the covenant class will do that.
+
+3. How would you architect your solution as a production service wherein new facilities can be introduced at arbitrary points in time. Assume these facilities become available by the finance team emailing your team and describing the addition with a new set of CSVs.
+Answer:
+In production there would be an RDS with all facilities, covenants, banks, loans
+there would be an additional application for admins where they can can add/remove/modify information in the Database (REST API)
+the admins (programmers or other suitable admins) will use that app to add new facilities and new covenants
+
+4. Your solution most likely simulates the streaming process by directly calling a method in your code to process the loans inside of a for loop. What would a REST API look like for this same service? Stakeholders using the API will need, at a minimum, to be able to request a loan be assigned to a facility, and read the funding status of a loan, as well as query the capacities remaining in facilities.
+Answer:
+There would be an RDS with at least the following tables:
+banks
+facilities
+loans
+covenants
+loanAssignments
+facilityYields
+
+Each table will have a set of REST APIs (GET/POST/PUT/DELET)
+within the API set there would be all needed operations such as:
+GET all facilities
+GET the remainding funding amount for facility with id: x (a facility id)
+POST facility (=add a new facility)
+and so on for any functionality we need
+
+5. How might you improve your assignment algorithm if you were permitted to assign loans in batch rather than streaming? We are not looking for code here, but pseudo code or description of a revised algorithm appreciated.
+answer:
+
+6. Discuss your solution’s runtime complexity.
+answer:
+map:
+banks table row number = B
+loans table row number = L
+facilities row number = F
+covenants row number = C
+assignments length = N
+
+Run time calculation:
+Loan to Facility Assignment runtime:
+1. filtering facilities with enougt funding amount: F
+2. filter facilities where laon meets covenant restrictions: F*C
+3. finding the facility with the minimum rate: F
+4. decreasing the funding amount from the chosen facility fundings: F
+5. steps 1-4 run for every loan, therefore the runtime would be: 
+L*(F+F*C+F+F) = O(L*(4F+C))
+
+Yields Calculation:
+runtime will be the length of the assignmnet array which matches between loans and facilities. O(n)
+
+Reading csv file and converting to the datamodel:
+for every table, the code go over all rows two times:
+1. through PapaParse that convers to a sD array data model
+2. the 2D array from PapaParse output is converted to the code data model
+Runtime = O(table row number)
+
+Converting the code data model to a csv file:
+the same as reading the csv file:
+1. convring data model tp 2D array (nxm)
+2. creating a csv file with the content from step1 and downloading the file
+Runtime = O(2D array length) = O(n*m) 
+comment: I separated the n and the m to 2 different sizes since in real life the amount or columns usually much smaller than number of rows
