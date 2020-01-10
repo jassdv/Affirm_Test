@@ -6,6 +6,8 @@ class LoanBooks{
         this.banks=[]
         this.assignments=[]
         this.yields={}
+        this.test=null
+        //this.test = $.csv.toArray('affirm-take-home-interview-sept-2018/large/banks.csv')
     }
     setDummyData(){ //sets dummy data to all arrays for simple case testing
         this.loans = [
@@ -29,7 +31,7 @@ class LoanBooks{
     }
     /*
     name: assignLoansToFacilities
-    arguments: none - using the class attributes
+    arguments: none - using the class properties
     functionality:
         1. for each loan in this.loans:
             1.1 find all suitable facilities from this.facilities
@@ -47,10 +49,12 @@ class LoanBooks{
             const facilitiesWithFundings = this.facilities.filter((facility)=>{
                 return facility.amount >= loan.amount
             })
+            //debugger
             const facilitiesFitCovenants = facilitiesWithFundings.filter((facility)=>{
                 return this.meetCovenants(facility,loan)
 
             })
+            //debugger
             const chosenFacility = facilitiesFitCovenants.reduce((minRateFacility,facility)=> facility.interest_rate < minRateFacility.interest_rate ? facility : minRateFacility,facilitiesFitCovenants[0])
 
             //decrease the chosen facility amount
@@ -60,7 +64,7 @@ class LoanBooks{
 
            
             console.log("loan: ", loan)
-            console.log("cosen facility: ", chosenFacility)
+            console.log("chosen facility: ", chosenFacility)
             if(loan && chosenFacility)
                 return {loan: loan, facility: chosenFacility}
         })
@@ -93,24 +97,172 @@ class LoanBooks{
         })
         return covenantsForLoan.length ? false : true
     }
+    /*
+    name: facilityYieldCalculator
+    arguments: none
+    functionality: builds 'yields' class property
+        1. go over class 'assignments' propery and for each one:
+            1.1 calculate the expected yield according to required formula
+            1.2 if there is no element in the class 'yields' property with the current facility id
+                1.2.1 create a new entry in Yields with key=current facility id, value: expected yield
+            1.3 else - there is already an entry in yields with key = current facility id
+                1.3.1 increas the the value with the calculated expected yield
+    */
     facilityYieldCalculator(){
         this.assignments.forEach((assignment)=>{
-            // const defaultLikelihood = 
-            // const loanInterestRate=
-            // const loanAmount=
-            // const facilityInterestRate=
-            debugger
-            
-            const expectedYield = Math.round((1 - assignment.loan.default_likelihood) * (assignment.loan.interest_rate * assignment.loan.amount) - (assignment.loan.default_likelihood * assignment.loan.amount) - (assignment.facility.interest_rate * assignment.loan.amount))
-            if(!this.yields[assignment.facility.id]) this.yields[assignment.facility.id] = expectedYield
-            else this.yields[assignment.facility.id] += expectedYield
+            if(assignment){
+                const expectedYield = Math.round((1 - assignment.loan.default_likelihood) * (assignment.loan.interest_rate * assignment.loan.amount) - (assignment.loan.default_likelihood * assignment.loan.amount) - (assignment.facility.interest_rate * assignment.loan.amount))
+                if(!this.yields[assignment.facility.id]) this.yields[assignment.facility.id] = expectedYield
+                else this.yields[assignment.facility.id] += expectedYield
+            }
         })
         console.log(this.yields)
     }
+    /*
+    name:setBookContent
+    arguments: bookProperty - the property in "LoanBooks" to set the content
+               content - csv content that was converted to a 2D array
+    functionality: modified the 2D array to an array of objects
+                   and assign to the suitable loanBook propery (banks/facilities/covenants/loans)
+        1. extract the first array in the 2Dcontent array - these elements would be "keys" in the "loanBooks" property
+        2. extract arrays in indexes: 1 -> content.length-2 (the last array in the content.length-1 is always empty)
+        3. go over all arrays from 2nd step and for each one
+            3.1 convert the array to be an object with keys taken from the array in 1st step and values would be the current array values
+        4. set the suitable "bookProperty" with the converted data from previous steps
+    */
+    setBookContent(bookProperty="",content=""){
+        if(!bookProperty.length || !content.length) return
+        const keys = content[0];    //taking the first array these will be the keys in the array of objects
+        const bookData = content.slice(1,content.length-1)
+        let convertedBookData = bookData.map((row)=>{
+            return row.reduce((rowObj,rowElem,idx)=>{
+                if(rowElem === "") rowObj[keys[idx]]=null
+                else rowObj[keys[idx]] = rowElem
+                return rowObj
+            },{})
+        })
+        //assigning to the suitable "LoanBooks" property
+        switch(bookProperty){
+            case "banks":
+                this.banks = convertedBookData
+                break
+            case "facilities":
+                this.facilities = convertedBookData
+                break
+            case "loans":
+                this.loans = convertedBookData
+                break
+            case "covenants":
+                this.covenants = convertedBookData
+                break
+            default:
+                console.log("no loan books propert match found")
+                break
+        }
+    }/*
+    name: convertAssignmentsToCSV
+    arguments: none
+    functionality:
+        1. go over "LoanBooks" assignments property and conver to a 2D array
+           where the first row contais the keys and all other rows conatin two elements: laon_id, facility_id
+        2. conert the 2D array ro CSV
+     */
+    convertAssignmentsToCSV(){
+        if(!this.assignments.length) return
+        let assignmentsCSV = []
+        assignmentsCSV[0] = ["loan_id","facility_id"]
+        for(let i=0;i<this.assignments.length;i++){
+            if(this.assignments[i]){
+                assignmentsCSV[i+1] = [this.assignments[i].loan.id,this.assignments[i].facility.id]
+            }
+        }
+        let csvContent = "data:text/csv;charset=utf-8," + assignmentsCSV.map(e => e.join(",")).join("\n");
+        let encodedUri = encodeURI(csvContent);
+        //downloading as csv
+        let downloadLink = document.createElement("a");
+        downloadLink.href = encodedUri;
+        downloadLink.download = "assignments.csv";
+
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+    }
+    /*
+    name:  convertYieldsToCSV
+    arguments: none
+    functionality: 
+        1. go over "LoanBooks" yields property and conver to a 2D array
+           where the first row contais the keys and all other rows conatin two elements: facility id, expected yield
+        2. conert the 2D array ro CSV
+    */
+    convertYieldsToCSV(){
+        const yieldsKeys = Object.keys(this.yields)
+        if(!yieldsKeys.length) return
+        let yieldsCSV = []
+        yieldsCSV[0] = ["facility_id","expected_yield"]
+        for(let i=0;i<yieldsKeys.length;i++){
+            yieldsCSV[i+1] = [yieldsKeys[i],this.yields[yieldsKeys[i]]]
+            // if(this.yields[i]){
+            //     assignmentsCSV[i+1] = [this.assignments[i].loan.id,this.assignments[i].facility.id]
+            // }
+        }
+        let csvContent = "data:text/csv;charset=utf-8," + yieldsCSV.map(e => e.join(",")).join("\n");
+        let encodedUri = encodeURI(csvContent);
+        
+        //downloading as csv
+        let downloadLink = document.createElement("a");
+        downloadLink.href = encodedUri;
+        downloadLink.download = "yields.csv";
+
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+    }
 }
 
-let a = new LoanBooks()
-a.setDummyData()
-a.assignLoansToFacilities()
-console.log(a.assignments)
-a.facilityYieldCalculator()
+//testing the small files
+let smallBook = new LoanBooks()
+//smallBook.setDummyData()
+//smallBook.assignLoansToFacilities()
+// console.log(smallBook.assignments)
+// smallBook.facilityYieldCalculator()
+
+
+let bigBook = new LoanBooks()
+
+
+//event for uploading local csv files
+const openFile = (event) => {
+    let inputFile = event.target;
+    let reader = new FileReader();
+    reader.onload = () => {
+        let data = Papa.parse(reader.result);
+        bigBook.setBookContent(event.target.name,data.data)
+    };
+    reader.readAsText(inputFile.files[0]);
+  };
+
+
+  const calculateLoanAssignments = (event) =>{
+    bigBook.assignLoansToFacilities()
+    bigBook.facilityYieldCalculator()
+    console.log(bigBook.assignments)
+    console.log(bigBook.yields)
+
+
+  }
+
+  const downloadCSV = (event) =>{
+      bigBook.convertAssignmentsToCSV()
+      bigBook.convertYieldsToCSV()
+  }
+//   bigBook.assignLoansToFacilities()
+//   console.log(bigBook.assignments)
+// // console.log(res) 
+// var data = Papa.parse(res);
+// const file = window.open('../affirm-take-home-interview-sept-2018/large/banks.csv')
+// d3.csv('../affirm-take-home-interview-sept-2018/large/banks.csv').then(function(data) {
+//     console.log(data); 
+//   }).catch((e)=>{
+//       console.log(e)
+//   });

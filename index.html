@@ -4,10 +4,37 @@
 	<title>Hello</title>
 </head>
 <body>
-    <script src="balanceTheLoanBooks.js">
-            let d = new Date();
-            document.body.innerHTML = "<h1>Today's date is " + d + "</h1>"
-            
+    <script 
+        src="https://code.jquery.com/jquery-1.12.4.min.js"
+        integrity="sha384-nvAa0+6Qg9clwYCGGPpDQLVpLNn0fRaROjHqs13t4Ggj3Ez50XnGQqc/r8MhnRDZ"
+        crossorigin="anonymous">
     </script>
+    <script src="jquery-csv-master/src/jquery.csv.js"></script>
+    <script src="PapaParse-5.0.2/papaparse.js"></script>
+    <div>
+        Upload a banks file
+        <input type='file' accept='text/plain' name="banks" onchange='openFile(event)'><br>
+    </div>
+    <div>
+        Upload a facilities file
+        <input type='file' accept='text/plain' name="facilities" onchange='openFile(event)'><br>
+    </div>
+    <div>
+        Upload a covenants file
+        <input type='file' accept='text/plain' name="covenants" onchange='openFile(event)'><br>
+    </div>
+    <div>
+        Upload a loans file
+        <input type='file' accept='text/plain' name="loans" onchange='openFile(event)'><br>
+    </div>
+    <button type="button" onclick='calculateLoanAssignments(event)'>calculate Loan assignments</button>
+    <br />
+    <button type="button" onclick='downloadCSV(event)'>Download Assignments and Yields files</button>
+    
+    <!-- <div id='output'> -->
+    <!-- <script src="https://d3js.org/d3-dsv.v1.min.js"></script>
+    <script src="https://d3js.org/d3-fetch.v1.min.js"></script> -->
+    <script src="balanceTheLoanBooks.js"></script>
+
 </body>
 </html>
