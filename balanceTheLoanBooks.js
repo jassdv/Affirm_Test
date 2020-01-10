@@ -45,19 +45,15 @@ class LoanBooks{
                    has two keys: laon_id and facility_i
      */
     assignLoansToFacilities(){
-        console.log("facilities: "+this.facilities)
         this.assignments = this.loans.map((loan)=>{
             const facilitiesWithFundings = this.facilities.filter((facility)=>{
                 return parseFloat(facility.amount) >= parseFloat(loan.amount)
             })
-            //debugger
             const facilitiesFitCovenants = facilitiesWithFundings.filter((facility)=>{
                 return this.meetCovenants(facility,loan)
 
             })
-            //debugger
             const chosenFacility = facilitiesFitCovenants.reduce((minRateFacility,facility)=> parseFloat(facility.interest_rate) < parseFloat(minRateFacility.interest_rate) ? facility : minRateFacility,facilitiesFitCovenants[0])
-            if(!chosenFacility) debugger
         
             //decrease the chosen facility amount
             for(let i=0;i<this.facilities.length;i++){
@@ -115,9 +111,7 @@ class LoanBooks{
                 const loanAmount = parseFloat(assignment.loan.amount)
                 const lossAmountLikelihood = parseFloat(assignment.loan.default_likelihood * assignment.loan.amount)
                 const facilityPaymentAmount = parseFloat(assignment.facility.interest_rate * assignment.loan.amount)
-                // const expectedYield = Math.round((1 - assignment.loan.default_likelihood) * (assignment.loan.interest_rate * assignment.loan.amount) - (assignment.loan.default_likelihood * assignment.loan.amount) - (assignment.facility.interest_rate * assignment.loan.amount))
                 const expectedYield = Math.round(loanSuccessLikelyHood * (loanInterestRate * loanAmount) - (lossAmountLikelihood) - (facilityPaymentAmount))
-                //debugger
                 if(!this.yields[assignment.facility.id]) this.yields[assignment.facility.id] = expectedYield
                 else this.yields[assignment.facility.id] += expectedYield
             }
@@ -228,13 +222,9 @@ class LoanBooks{
 let smallBook = new LoanBooks()
 smallBook.setDummyData()
 smallBook.assignLoansToFacilities()
-console.log(smallBook.assignments)
 smallBook.facilityYieldCalculator()
-console.log(smallBook.yields)
-
 
 let bigBook = new LoanBooks()
-
 
 //event for uploading local csv files
 const openFile = (event) => {
