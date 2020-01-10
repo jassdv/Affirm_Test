@@ -37,6 +37,18 @@ and so on for any functionality we need
 
 5. How might you improve your assignment algorithm if you were permitted to assign loans in batch rather than streaming? We are not looking for code here, but pseudo code or description of a revised algorithm appreciated.
 answer:
+If I could assign loans in batches I would first sort the loans by default_likelihood in decreasing ordert (hight->low)
+then, I would divide the loans inti 2 batches:
+a- hight default_likelihood (there will be a likelihood value that any value above it is considered high risk)
+b - low default_likelihood.
+then:
+I assign group a in descending order (hight default likelihood to low), for each loan I will find the facility 
+that meets covnants and has the lowest interest rate
+then, I will sort group b in descending order by amount
+and then I will assign each loan to the facility with the lowest interest_rate and also that meets 
+cavenants.
+The idea here is that for some loans the risk is more important and for some the amount
+
 
 6. Discuss your solution’s runtime complexity.
 answer:

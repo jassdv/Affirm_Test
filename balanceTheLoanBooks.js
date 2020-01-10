@@ -45,9 +45,10 @@ class LoanBooks{
                    has two keys: laon_id and facility_i
      */
     assignLoansToFacilities(){
+        console.log("facilities: "+this.facilities)
         this.assignments = this.loans.map((loan)=>{
             const facilitiesWithFundings = this.facilities.filter((facility)=>{
-                return facility.amount >= loan.amount
+                return parseFloat(facility.amount) >= parseFloat(loan.amount)
             })
             //debugger
             const facilitiesFitCovenants = facilitiesWithFundings.filter((facility)=>{
@@ -55,16 +56,13 @@ class LoanBooks{
 
             })
             //debugger
-            const chosenFacility = facilitiesFitCovenants.reduce((minRateFacility,facility)=> facility.interest_rate < minRateFacility.interest_rate ? facility : minRateFacility,facilitiesFitCovenants[0])
-
+            const chosenFacility = facilitiesFitCovenants.reduce((minRateFacility,facility)=> parseFloat(facility.interest_rate) < parseFloat(minRateFacility.interest_rate) ? facility : minRateFacility,facilitiesFitCovenants[0])
+            if(!chosenFacility) debugger
+        
             //decrease the chosen facility amount
             for(let i=0;i<this.facilities.length;i++){
-                if(this.facilities[i].id == chosenFacility) this.facilities[i].amount-=loan.amount
+                if(this.facilities[i].id == chosenFacility.id) this.facilities[i].amount= parseFloat(this.facilities[i].amount) - parseFloat(loan.amount)
             }
-
-           
-            console.log("loan: ", loan)
-            console.log("chosen facility: ", chosenFacility)
             if(loan && chosenFacility)
                 return {loan: loan, facility: chosenFacility}
         })
@@ -93,7 +91,7 @@ class LoanBooks{
             }
         })
         const covenantsForLoan = covenantsForFacility.filter((covenant)=>{
-            return ((covenant.max_default_likelihood && covenant.max_default_likelihood < loan.default_likelihood) || (covenant.banned_state == loan.state) )
+            return ((covenant.max_default_likelihood && parseFloat(covenant.max_default_likelihood) < parseFloat(loan.default_likelihood)) || (covenant.banned_state == loan.state) )
         })
         return covenantsForLoan.length ? false : true
     }
@@ -110,13 +108,20 @@ class LoanBooks{
     */
     facilityYieldCalculator(){
         this.assignments.forEach((assignment)=>{
+            
             if(assignment){
-                const expectedYield = Math.round((1 - assignment.loan.default_likelihood) * (assignment.loan.interest_rate * assignment.loan.amount) - (assignment.loan.default_likelihood * assignment.loan.amount) - (assignment.facility.interest_rate * assignment.loan.amount))
+                const loanSuccessLikelyHood = (1 - parseFloat(assignment.loan.default_likelihood))
+                const loanInterestRate = parseFloat(assignment.loan.interest_rate)
+                const loanAmount = parseFloat(assignment.loan.amount)
+                const lossAmountLikelihood = parseFloat(assignment.loan.default_likelihood * assignment.loan.amount)
+                const facilityPaymentAmount = parseFloat(assignment.facility.interest_rate * assignment.loan.amount)
+                // const expectedYield = Math.round((1 - assignment.loan.default_likelihood) * (assignment.loan.interest_rate * assignment.loan.amount) - (assignment.loan.default_likelihood * assignment.loan.amount) - (assignment.facility.interest_rate * assignment.loan.amount))
+                const expectedYield = Math.round(loanSuccessLikelyHood * (loanInterestRate * loanAmount) - (lossAmountLikelihood) - (facilityPaymentAmount))
+                //debugger
                 if(!this.yields[assignment.facility.id]) this.yields[assignment.facility.id] = expectedYield
                 else this.yields[assignment.facility.id] += expectedYield
             }
         })
-        console.log(this.yields)
     }
     /*
     name:setBookContent
@@ -156,7 +161,6 @@ class LoanBooks{
                 this.covenants = convertedBookData
                 break
             default:
-                console.log("no loan books propert match found")
                 break
         }
     }/*
@@ -222,10 +226,11 @@ class LoanBooks{
 
 //testing the small files
 let smallBook = new LoanBooks()
-//smallBook.setDummyData()
-//smallBook.assignLoansToFacilities()
-// console.log(smallBook.assignments)
-// smallBook.facilityYieldCalculator()
+smallBook.setDummyData()
+smallBook.assignLoansToFacilities()
+console.log(smallBook.assignments)
+smallBook.facilityYieldCalculator()
+console.log(smallBook.yields)
 
 
 let bigBook = new LoanBooks()
@@ -242,27 +247,14 @@ const openFile = (event) => {
     reader.readAsText(inputFile.files[0]);
   };
 
-
+  //an event handler when the user clicks on "calculate loan assignment"
   const calculateLoanAssignments = (event) =>{
     bigBook.assignLoansToFacilities()
     bigBook.facilityYieldCalculator()
-    console.log(bigBook.assignments)
-    console.log(bigBook.yields)
-
-
   }
-
+  
+  //an event handler when the user clicks on: "Download Assignments and Yields"
   const downloadCSV = (event) =>{
       bigBook.convertAssignmentsToCSV()
       bigBook.convertYieldsToCSV()
   }
-//   bigBook.assignLoansToFacilities()
-//   console.log(bigBook.assignments)
-// // console.log(res) 
-// var data = Papa.parse(res);
-// const file = window.open('../affirm-take-home-interview-sept-2018/large/banks.csv')
-// d3.csv('../affirm-take-home-interview-sept-2018/large/banks.csv').then(function(data) {
-//     console.log(data); 
-//   }).catch((e)=>{
-//       console.log(e)
-//   });
